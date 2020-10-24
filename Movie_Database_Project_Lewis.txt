@@ -1,0 +1,63 @@
+--Investigating a Relational Database by Sara Lewis
+
+--How many films are in each family-friendly category and rental duration quartile?
+WITH t1 AS (SELECT
+f.title as title, c.name as category, f.rental_duration as duration, NTILE(4) OVER (ORDER BY f.rental_duration) AS standard_quartile
+FROM film f
+JOIN film_category fc
+ON fc.film_id = f.film_id
+JOIN category c
+ON c.category_id = fc.category_id
+WHERE c.name IN ('Animation', 'Children', 'Classics', 'Comedy', 'Family', 'Music'))
+SELECT category, standard_quartile, COUNT (*)
+FROM t1
+GROUP BY 1,2
+ORDER BY 1,2
+
+--How do stores 1 & 2 compare in number of rentals within a specific time frame?
+SELECT DATE_PART('year',r.rental_date) AS rental_year, DATE_PART('month',r.rental_date) AS rental_month, st.store_id AS store_id, COUNT(*) AS rental_count
+FROM rental r
+JOIN staff s
+ON r.staff_id = s.staff_id
+JOIN store st
+ON st.store_id = s.store_id
+GROUP BY 1, 2, 3
+ORDER BY 4 DESC
+
+--How many times did the top 10 paying customers pay during each month of 2007, and how much did they spend?
+WITH top_10 AS(
+SELECT c.first_name || ' ' || c.last_name AS full_name, c.customer_id AS c_id, SUM(p.amount)
+FROM payment p
+JOIN customer c
+ON c.customer_id = p.customer_id
+GROUP BY 1, 2
+ORDER BY 3 DESC
+LIMIT 10)
+SELECT
+full_name, DATE_TRUNC('month', p.payment_date) AS pay_month, SUM(p.amount)AS pay_amt, COUNT(p.payment_id) AS payment_count
+FROM top_10 t
+JOIN payment p
+ON c_id = p.customer_id
+GROUP BY 1, 2
+ORDER BY 1, 2
+
+--How much do monthly payment amounts change by month for each of the top 10 customers?
+WITH top_10 AS(
+SELECT c.first_name || ' ' || c.last_name AS full_name, c.customer_id AS c_id, SUM(p.amount)
+FROM payment p
+JOIN customer c
+ON c.customer_id = p.customer_id
+GROUP BY 1, 2
+ORDER BY 3 DESC
+LIMIT 10),
+monthly_payments AS (SELECT
+full_name, DATE_TRUNC('month', p.payment_date) AS pay_month, SUM(p.amount)AS pay_amt, COUNT(p.payment_id) AS payment_count
+FROM top_10 t
+JOIN payment p
+ON c_id = p.customer_id
+GROUP BY 1, 2
+ORDER BY 1, 2)
+SELECT
+full_name, pay_month, pay_amt, LAG(pay_amt) OVER (PARTITION BY full_name ORDER BY pay_month) AS previous_month, pay_amt - LAG(pay_amt) OVER (PARTITION BY full_name ORDER BY pay_month) AS pay_diff
+FROM monthly_payments
+ORDER BY 1
