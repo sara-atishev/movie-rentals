@@ -1,6 +1,7 @@
 --Investigating a Relational Database by Sara Lewis
 
 --How many films are in each family-friendly category and rental duration quartile?
+--Goal: identify trends in rental durations and film counts by family-friendly category
 WITH t1 AS (SELECT
 f.title as title, c.name as category, f.rental_duration as duration, NTILE(4) OVER (ORDER BY f.rental_duration) AS standard_quartile
 FROM film f
@@ -15,6 +16,7 @@ GROUP BY 1,2
 ORDER BY 1,2
 
 --How do stores 1 & 2 compare in number of rentals within a specific time frame?
+--Goal: to compare the performance of two stores by looking at how many unique rentals each store completes over the same amount of time
 SELECT DATE_PART('year',r.rental_date) AS rental_year, DATE_PART('month',r.rental_date) AS rental_month, st.store_id AS store_id, COUNT(*) AS rental_count
 FROM rental r
 JOIN staff s
@@ -25,6 +27,7 @@ GROUP BY 1, 2, 3
 ORDER BY 4 DESC
 
 --How many times did the top 10 paying customers pay during each month of 2007, and how much did they spend?
+--Goal: see if the top paying customers are returning customers and if they spend the same (or more) each month
 WITH top_10 AS(
 SELECT c.first_name || ' ' || c.last_name AS full_name, c.customer_id AS c_id, SUM(p.amount)
 FROM payment p
@@ -42,6 +45,7 @@ GROUP BY 1, 2
 ORDER BY 1, 2
 
 --How much do monthly payment amounts change by month for each of the top 10 customers?
+--Goal: evaluate whether the amount spent by each top customer grows or declines month over month and if there are any trends in payment growth
 WITH top_10 AS(
 SELECT c.first_name || ' ' || c.last_name AS full_name, c.customer_id AS c_id, SUM(p.amount)
 FROM payment p
